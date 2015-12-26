@@ -4,16 +4,20 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.HashMap;
 
 public class HMACGenerator {
-    final private String hashAlgorithm;
     final private MessageDigest messageDigest;
     final private Map<String, Integer> blockSizesDictionary;
     final private int blockSize;
+    final private Logger LOGGER;
     
     public HMACGenerator(String hashAlgorithm) throws NoSuchAlgorithmException {
-        this.hashAlgorithm = hashAlgorithm;
+    	LOGGER = LoggerFactory.getLogger(HMACGenerator.class);
         messageDigest = MessageDigest.getInstance(hashAlgorithm);
         blockSizesDictionary = generateBlockSizeDictionary();
         blockSize = blockSizesDictionary.get(hashAlgorithm);
@@ -38,19 +42,19 @@ public class HMACGenerator {
     public byte[] generateHMAC(byte[] text, byte[] key) {
         // Steps 1 to 3
         byte[] k0 = getK0(key, blockSize);
-        System.out.println("K0:\n" + byteArrayToHexString(k0));
+        LOGGER.debug("K0:\n{}", byteArrayToHexString(k0));
         
         // Step 4: K0 XOR ipad
         byte[] k0XORipad = XOR(k0, createInnerPad(blockSize));
-        System.out.println("K0 ^ ipad:\n" + byteArrayToHexString(k0XORipad));
+        LOGGER.debug("K0 ^ ipad:\n{}", byteArrayToHexString(k0XORipad));
         
         // Step 5 & 6 H((K0 XOR ipad) || text)
         byte[] intermediateHash = hash(concatenateByteArrays(k0XORipad, text));
-        System.out.println("Intermediate Hash:\n" + byteArrayToHexString(intermediateHash));
+        LOGGER.debug("Intermediate Hash:\n{}", byteArrayToHexString(intermediateHash));
         
         // Step 7: K0 XOR opad
         byte[] k0XORopad = XOR(k0, createOuterPad(blockSize));
-        System.out.println("K0 ^ opad:\n" + byteArrayToHexString(k0XORopad));
+        LOGGER.debug("K0 ^ opad:\n{}", byteArrayToHexString(k0XORopad));
         
         // Step 8 & 9: H(K0 XOR opad) || H((K0 XOR ipad) || text))
         return hash(concatenateByteArrays(k0XORopad, intermediateHash));
